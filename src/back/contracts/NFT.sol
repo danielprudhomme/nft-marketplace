@@ -10,6 +10,10 @@ contract NFT is ERC721URIStorage {
 
     constructor() ERC721("MyNFT", "NFT") {}
 
+    function tokenCount() external view returns (uint256) {
+        return _tokenIds.current();
+    }
+
     function mint(string memory _tokenURI) external returns (uint256) {
         _tokenIds.increment();
 
