@@ -9,9 +9,52 @@ import "hardhat/console.sol";
 contract Marketplace is ReentrancyGuard {
     address payable public immutable feeAccount; // the account that receives fees
     uint256 public immutable feePercent; // the fee percentage on sales
+    uint256 public itemCount;
+
+    struct Item {
+        uint256 itemId;
+        IERC721 nft;
+        uint256 tokenId;
+        uint256 price;
+        address payable seller;
+        bool sold;
+    }
+
+    // itemId -> Item
+    mapping(uint256 => Item) public items;
+
+    event ForSale(
+        uint256 itemId,
+        address indexed nft,
+        uint256 tokenId,
+        uint256 price,
+        address indexed seller
+    );
 
     constructor(uint256 _feePercent) {
         feeAccount = payable(msg.sender);
         feePercent = _feePercent;
+    }
+
+    function putUpForSale(
+        IERC721 _nft,
+        uint256 _tokenId,
+        uint256 _price
+    ) external nonReentrant {
+        require(_price > 0, "Price must be greater than zero");
+
+        itemCount++;
+        _nft.transferFrom(msg.sender, address(this), _tokenId);
+
+        items[_tokenId] = Item(
+            itemCount,
+            _nft,
+            _tokenId,
+            _price,
+            payable(msg.sender),
+            false
+        );
+
+        emit ForSale(itemCount, address(_nft), _tokenId, _price, msg.sender);
     }
 }
