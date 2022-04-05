@@ -1,14 +1,14 @@
-require("@nomiclabs/hardhat-waffle");
+require('@nomiclabs/hardhat-waffle')
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.9",
+  solidity: '0.8.9',
   paths: {
-    artifacts: "./src/back/artifacts",
-    sources: "./src/back/contracts",
-    cache: "./src/back/cache",
-    tests: "./src/back/test"
+    artifacts: './src/artifacts',
+    sources: './src/contracts',
+    cache: './src/cache',
+    tests: './src/test',
   },
-};
+}
