@@ -76,4 +76,78 @@ describe('Marketplace', function () {
         .withArgs(1, nft.address, 1, price, addr1.address)
     })
   })
+
+  describe('Purchase NFT', function () {
+    let price = toWei(2)
+    let sellerInitialBalance, feeAccountInitialBalance, totalPrice
+
+    beforeEach(async function () {
+      await nft.connect(addr1).mint(URI1)
+      await nft.connect(addr1).setApprovalForAll(marketplace.address, true)
+      await marketplace.connect(addr1).putUpForSale(nft.address, 1, price)
+
+      sellerInitialBalance = await addr1.getBalance()
+      feeAccountInitialBalance = await owner.getBalance()
+      totalPrice = await marketplace.getTotalPrice(1)
+    })
+
+    describe('Should be successful', function () {
+      beforeEach(async function () {
+        await marketplace.connect(addr2).purchase(1, { value: totalPrice })
+      })
+
+      it('Should update item as sold', async function () {
+        expect((await marketplace.items(1)).sold).to.be.true
+      })
+
+      it('Should pay seller', async function () {
+        const sellerFinalBalance = await addr1.getBalance()
+        expect(+sellerFinalBalance).to.equal(+sellerInitialBalance + +price)
+      })
+
+      it('Should send fees to feeAccount', async function () {
+        const feeAccountFinalBalance = await owner.getBalance()
+        const fee = (+price * feePercent) / 100
+        expect(+feeAccountFinalBalance).to.equal(
+          +feeAccountInitialBalance + +fee,
+        )
+      })
+
+      it('Should transfer NFT to buyer', async function () {
+        expect(await nft.ownerOf(1)).to.equal(addr2.address)
+      })
+    })
+
+    it('Should emit Bought event', async function () {
+      expect(
+        await marketplace.connect(addr2).purchase(1, { value: totalPrice }),
+      )
+        .to.emit(marketplace, 'Bought')
+        .withArgs(1, nft.address, 1, price, addr1.address, addr2.address)
+    })
+
+    describe.only('Should fail', function () {
+      it('Should fail for invalid item id', async function () {
+        await expect(
+          marketplace.connect(addr2).purchase(2, { value: totalPrice }),
+        ).to.be.reverted
+        await expect(
+          marketplace.connect(addr2).purchase(0, { value: totalPrice }),
+        ).to.be.reverted
+      })
+
+      it('Should fail when not enough ether sent', async function () {
+        await expect(
+          marketplace.connect(addr2).purchase(1, { value: totalPrice - 1 }),
+        ).to.be.reverted
+      })
+
+      it('Should fail if item is already sold', async function () {
+        await marketplace.connect(addr2).purchase(1, { value: totalPrice })
+        await expect(
+          marketplace.connect(addr2).purchase(1, { value: totalPrice }),
+        ).to.be.reverted
+      })
+    })
+  })
 })
